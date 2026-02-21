@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { sql } from "@/lib/db";
+
+const assetSchema = z.object({
+  name: z.string().min(1).max(100),
+  category: z.string().min(1).max(50),
+  amount: z.number().int(),
+  institution: z.string().min(1).max(100),
+  lastUpdated: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  note: z.string().max(500).nullable().optional(),
+});
 
 export async function GET() {
   const session = await auth();
@@ -25,11 +35,15 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { name, category, amount, institution, lastUpdated, note } = body;
-
-  if (!name || !category || !amount || !institution || !lastUpdated) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const parsed = assetSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.errors[0].message },
+      { status: 400 }
+    );
   }
+
+  const { name, category, amount, institution, lastUpdated, note } = parsed.data;
 
   const result = await sql`
     INSERT INTO assets (user_id, name, category, amount, institution, last_updated, note)

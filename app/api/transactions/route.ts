@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { sql } from "@/lib/db";
+
+const transactionSchema = z.object({
+  type: z.enum(["income", "expense"]),
+  category: z.string().min(1).max(50),
+  amount: z.number().int().positive(),
+  description: z.string().min(1).max(200),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+});
 
 export async function GET() {
   const session = await auth();
@@ -25,11 +34,15 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { type, category, amount, description, date } = body;
-
-  if (!type || !category || !amount || !description || !date) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const parsed = transactionSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.errors[0].message },
+      { status: 400 }
+    );
   }
+
+  const { type, category, amount, description, date } = parsed.data;
 
   const result = await sql`
     INSERT INTO transactions (user_id, type, category, amount, description, date)

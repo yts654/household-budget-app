@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -13,11 +14,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const email = credentials.email as string;
+        const email = (credentials.email as string).toLowerCase();
         const password = credentials.password as string;
 
+        // Rate limit: 5 attempts per email per 15 minutes
+        if (isRateLimited(email, "login", 5, 15 * 60 * 1000)) {
+          throw new Error("ACCOUNT_LOCKED");
+        }
+
         const result = await sql`
-          SELECT id, email, password_hash, display_name
+          SELECT id, email, password_hash, display_name, email_verified
           FROM users
           WHERE email = ${email}
         `;
@@ -27,6 +33,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = result.rows[0];
         const isValid = await bcrypt.compare(password, user.password_hash);
         if (!isValid) return null;
+
+        // Check email verification
+        if (!user.email_verified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
 
         return {
           id: user.id,

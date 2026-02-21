@@ -66,8 +66,14 @@ export function SettingsView() {
     if (!res.ok) {
       toast.error(data.error || "Failed to update profile.");
     } else {
-      await updateSession({ name: displayName, email });
-      toast.success("Profile updated.");
+      if (data.emailChangeMessage) {
+        toast.success(data.emailChangeMessage);
+        // Reset email field to current email since change is pending
+        setEmail(data.email);
+      } else {
+        toast.success("Profile updated.");
+      }
+      await updateSession({ name: displayName, email: data.email });
     }
     setProfileSaving(false);
   }
@@ -142,6 +148,9 @@ export function SettingsView() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
+              <p className="text-xs text-muted-foreground">
+                Changing your email requires verification via the new address.
+              </p>
             </div>
             <Button type="submit" disabled={profileSaving} className="w-fit">
               {profileSaving ? (
@@ -194,8 +203,8 @@ export function SettingsView() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={8}
-                  placeholder="Min 8 chars, upper+lower+number"
+                  minLength={10}
+                  placeholder="Min 10 chars, upper+lower+number+special"
                   className="pr-10"
                 />
                 <button
@@ -323,7 +332,7 @@ export function SettingsView() {
               <p className="text-sm font-medium text-card-foreground">
                 Signed in as {session?.user?.email}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">v1.1.0</p>
+              <p className="text-xs text-muted-foreground mt-0.5">v1.2.0</p>
             </div>
             <Button
               variant="outline"
@@ -342,19 +351,27 @@ export function SettingsView() {
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
-    { label: "8+ chars", pass: password.length >= 8 },
+    { label: "10+ chars", pass: password.length >= 10 },
     { label: "Lowercase", pass: /[a-z]/.test(password) },
     { label: "Uppercase", pass: /[A-Z]/.test(password) },
     { label: "Number", pass: /[0-9]/.test(password) },
+    { label: "Special char", pass: /[^a-zA-Z0-9]/.test(password) },
   ];
 
   const passed = checks.filter((c) => c.pass).length;
-  const color = passed <= 1 ? "bg-destructive" : passed <= 3 ? "bg-warning" : "bg-success";
+  const color =
+    passed <= 1
+      ? "bg-destructive"
+      : passed <= 2
+        ? "bg-warning"
+        : passed <= 4
+          ? "bg-warning"
+          : "bg-success";
 
   return (
     <div className="flex flex-col gap-1 mt-1">
       <div className="flex gap-1">
-        {[0, 1, 2, 3].map((i) => (
+        {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full ${i < passed ? color : "bg-muted"}`}

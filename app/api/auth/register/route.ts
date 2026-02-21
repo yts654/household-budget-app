@@ -2,35 +2,20 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { sql } from "@/lib/db";
+import { passwordSchema } from "@/lib/password-validation";
+import { generateSecureToken } from "@/lib/token";
+import { isRateLimited } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/lib/email";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[a-z]/, "Password must include a lowercase letter")
-    .regex(/[A-Z]/, "Password must include an uppercase letter")
-    .regex(/[0-9]/, "Password must include a number"),
+  password: passwordSchema,
   displayName: z.string().min(1, "Display name is required").max(50),
 });
 
-// Simple in-memory rate limiter
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = attempts.get(ip);
-  if (!record || now > record.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
-    return false;
-  }
-  record.count++;
-  return record.count > 5;
-}
-
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for") || "unknown";
-  if (isRateLimited(ip)) {
+  if (isRateLimited(ip, "register", 5, 15 * 60 * 1000)) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
       { status: 429 }
@@ -48,21 +33,36 @@ export async function POST(request: Request) {
 
   const { email, password, displayName } = parsed.data;
 
-  // Check if user exists
+  // Check if user exists — return same success response to prevent email enumeration
   const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
   if (existing.rows.length > 0) {
-    return NextResponse.json(
-      { error: "An account with this email already exists." },
-      { status: 409 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: "Please check your email to verify your account.",
+    });
   }
 
   // Hash password and create user
   const passwordHash = await bcrypt.hash(password, 12);
-  await sql`
+  const result = await sql`
     INSERT INTO users (email, password_hash, display_name)
     VALUES (${email}, ${passwordHash}, ${displayName})
+    RETURNING id
   `;
 
-  return NextResponse.json({ success: true }, { status: 201 });
+  // Generate verification token (24-hour expiry)
+  const token = generateSecureToken();
+  const userId = result.rows[0].id;
+  await sql`
+    INSERT INTO verification_tokens (user_id, token, type, expires_at)
+    VALUES (${userId}, ${token}, 'email_verification', NOW() + INTERVAL '24 hours')
+  `;
+
+  // Send verification email
+  await sendVerificationEmail(email, token);
+
+  return NextResponse.json({
+    success: true,
+    message: "Please check your email to verify your account.",
+  });
 }

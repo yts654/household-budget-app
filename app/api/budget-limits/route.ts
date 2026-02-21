@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { sql } from "@/lib/db";
+
+const budgetLimitsSchema = z.record(
+  z.string().min(1).max(50),
+  z.number().int().min(0)
+);
 
 export async function GET() {
   const session = await auth();
@@ -29,7 +35,15 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json();
-  const limits: Record<string, number> = body;
+  const parsed = budgetLimitsSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.errors[0].message },
+      { status: 400 }
+    );
+  }
+
+  const limits = parsed.data;
 
   // Upsert each category
   for (const [category, amount] of Object.entries(limits)) {

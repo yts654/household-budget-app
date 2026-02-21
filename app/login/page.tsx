@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Landmark, Loader2, Eye, EyeOff } from "lucide-react";
+import { Landmark, Loader2, Eye, EyeOff, Mail } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,10 +20,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
+    setShowResendButton(false);
     setLoading(true);
 
     const result = await signIn("credentials", {
@@ -33,7 +38,14 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+        setError("Please verify your email before signing in.");
+        setShowResendButton(true);
+      } else if (result.error.includes("ACCOUNT_LOCKED")) {
+        setError("Too many failed attempts. Please try again in 15 minutes.");
+      } else {
+        setError("Invalid email or password.");
+      }
       setLoading(false);
       return;
     }
@@ -45,6 +57,7 @@ export default function LoginPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -67,22 +80,28 @@ export default function LoginPage() {
       return;
     }
 
-    // Auto-login after registration
-    const loginResult = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
+    // Show success message instead of auto-login
+    setSuccessMessage(data.message || "Please check your email to verify your account.");
+    setTab("login");
+    setLoading(false);
+  }
+
+  async function handleResendVerification() {
+    setResendLoading(true);
+    const res = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
 
-    if (loginResult?.error) {
-      setError("Account created. Please sign in.");
-      setTab("login");
-      setLoading(false);
-      return;
+    const data = await res.json();
+    if (res.ok) {
+      setSuccessMessage("Verification email sent. Please check your inbox.");
+      setShowResendButton(false);
+    } else {
+      setError(data.error || "Failed to resend verification email.");
     }
-
-    router.push("/");
-    router.refresh();
+    setResendLoading(false);
   }
 
   return (
@@ -100,7 +119,7 @@ export default function LoginPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <Tabs value={tab} onValueChange={(v) => { setTab(v as "login" | "register"); setError(""); }}>
+          <Tabs value={tab} onValueChange={(v) => { setTab(v as "login" | "register"); setError(""); setSuccessMessage(""); setShowResendButton(false); }}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="register">Create Account</TabsTrigger>
@@ -142,8 +161,27 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+                {successMessage && (
+                  <div className="flex items-start gap-2 rounded-lg bg-success/10 p-3 text-sm text-success">
+                    <Mail className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
                 {error && (
                   <p className="text-sm text-destructive">{error}</p>
+                )}
+                {showResendButton && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                  >
+                    {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Mail className="mr-2 h-4 w-4" />
+                    Resend Verification Email
+                  </Button>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -184,11 +222,11 @@ export default function LoginPage() {
                     <Input
                       id="reg-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Min 8 chars, upper+lower+number"
+                      placeholder="Min 10 chars, upper+lower+number+special"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={8}
+                      minLength={10}
                       autoComplete="new-password"
                       className="pr-10"
                     />
@@ -234,20 +272,29 @@ function PasswordStrength({ password }: { password: string }) {
   if (!password) return null;
 
   const checks = [
-    { label: "8+ characters", pass: password.length >= 8 },
+    { label: "10+ characters", pass: password.length >= 10 },
     { label: "Lowercase", pass: /[a-z]/.test(password) },
     { label: "Uppercase", pass: /[A-Z]/.test(password) },
     { label: "Number", pass: /[0-9]/.test(password) },
+    { label: "Special char", pass: /[^a-zA-Z0-9]/.test(password) },
   ];
 
   const passed = checks.filter((c) => c.pass).length;
-  const strength = passed <= 1 ? "Weak" : passed <= 3 ? "Fair" : "Strong";
-  const color = passed <= 1 ? "bg-destructive" : passed <= 3 ? "bg-warning" : "bg-success";
+  const strength =
+    passed <= 1 ? "Weak" : passed <= 2 ? "Fair" : passed <= 4 ? "Good" : "Strong";
+  const color =
+    passed <= 1
+      ? "bg-destructive"
+      : passed <= 2
+        ? "bg-warning"
+        : passed <= 4
+          ? "bg-warning"
+          : "bg-success";
 
   return (
     <div className="flex flex-col gap-1.5 mt-1">
       <div className="flex gap-1">
-        {[0, 1, 2, 3].map((i) => (
+        {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
             className={`h-1 flex-1 rounded-full ${i < passed ? color : "bg-muted"}`}

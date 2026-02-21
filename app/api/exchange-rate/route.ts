@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
+  // Defense-in-depth: require authentication
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // Fetch latest JPY to VND rate from a free API
     const res = await fetch(
