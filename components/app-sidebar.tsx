@@ -13,13 +13,12 @@ import { useTransactions, getTransactionsForMonth, getTotalExpense } from "@/lib
 import { useMonth } from "@/lib/month-context";
 import { useView, type ViewId } from "@/lib/view-context";
 import { useBudgetLimits } from "@/lib/budget-store";
+import { useLanguage, type Locale } from "@/lib/i18n";
 
-const NAV_ITEMS: { label: string; icon: typeof LayoutDashboard; viewId: ViewId }[] = [
-  { label: "Dashboard", icon: LayoutDashboard, viewId: "dashboard" },
-  { label: "Transactions", icon: Receipt, viewId: "transactions" },
-  { label: "Portfolio", icon: Briefcase, viewId: "portfolio" },
-  { label: "Analytics", icon: PieChart, viewId: "analytics" },
-  { label: "Settings", icon: Settings, viewId: "settings" },
+const LANG_OPTIONS: { code: Locale; flag: string }[] = [
+  { code: "en", flag: "\u{1F1FA}\u{1F1F8}" },
+  { code: "ja", flag: "\u{1F1EF}\u{1F1F5}" },
+  { code: "vi", flag: "\u{1F1FB}\u{1F1F3}" },
 ];
 
 export function AppSidebar() {
@@ -28,10 +27,19 @@ export function AppSidebar() {
   const { year, month } = useMonth();
   const { view, setView } = useView();
   const budgetLimits = useBudgetLimits();
+  const { t, locale, setLocale } = useLanguage();
   const monthTx = getTransactionsForMonth(allTx, year, month);
   const totalExpense = getTotalExpense(monthTx);
   const monthlyBudget = Object.values(budgetLimits).reduce((sum, v) => sum + v, 0);
   const progressPct = monthlyBudget > 0 ? Math.min(Math.round((totalExpense / monthlyBudget) * 100), 100) : 0;
+
+  const NAV_ITEMS: { labelKey: string; icon: typeof LayoutDashboard; viewId: ViewId }[] = [
+    { labelKey: "nav.dashboard", icon: LayoutDashboard, viewId: "dashboard" },
+    { labelKey: "nav.transactions", icon: Receipt, viewId: "transactions" },
+    { labelKey: "nav.portfolio", icon: Briefcase, viewId: "portfolio" },
+    { labelKey: "nav.analytics", icon: PieChart, viewId: "analytics" },
+    { labelKey: "nav.settings", icon: Settings, viewId: "settings" },
+  ];
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-sidebar text-sidebar-foreground h-screen sticky top-0 shrink-0">
@@ -41,13 +49,32 @@ export function AppSidebar() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight">
-            Kakeibo
+            {t("brand.name")}
           </h1>
-          <p className="text-xs text-sidebar-foreground/60 italic tracking-wide">Budget Tracker</p>
+          <p className="text-xs text-sidebar-foreground/60 italic tracking-wide">{t("brand.subtitle")}</p>
         </div>
       </div>
 
-      <nav className="flex flex-col gap-1 px-3 mt-4 flex-1">
+      {/* Language Toggle */}
+      <div className="px-4 mb-2">
+        <div className="flex items-center gap-1 bg-sidebar-accent/60 rounded-lg p-1">
+          {LANG_OPTIONS.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLocale(lang.code)}
+              className={`flex-1 text-center py-1.5 rounded-md text-sm transition-all ${
+                locale === lang.code
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm font-semibold"
+                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+              }`}
+            >
+              {lang.flag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <nav className="flex flex-col gap-1 px-3 mt-2 flex-1">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.viewId}
@@ -59,7 +86,7 @@ export function AppSidebar() {
             }`}
           >
             <item.icon className="h-4.5 w-4.5" />
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </nav>
@@ -67,10 +94,10 @@ export function AppSidebar() {
       <div className="px-4 py-4 mt-auto">
         <div className="bg-sidebar-accent rounded-xl p-4">
           <p className="text-xs font-semibold text-sidebar-accent-foreground mb-1">
-            Monthly Goal
+            {t("sidebar.monthlyGoal")}
           </p>
           <p className="text-xs text-sidebar-foreground/60 leading-relaxed">
-            Keep spending under {formatAmount(monthlyBudget)}
+            {t("sidebar.keepUnder")} {formatAmount(monthlyBudget)}
           </p>
           <div className="mt-3 h-1.5 bg-sidebar-border rounded-full overflow-hidden">
             <div
@@ -79,7 +106,7 @@ export function AppSidebar() {
             />
           </div>
           <p className="text-xs text-sidebar-foreground/50 mt-1.5">
-            {formatAmount(totalExpense)} spent ({progressPct}%)
+            {formatAmount(totalExpense)} {t("sidebar.spent")} ({progressPct}%)
           </p>
         </div>
       </div>

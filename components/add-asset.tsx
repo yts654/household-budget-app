@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/select";
 import {
   addAsset,
-  ASSET_CATEGORY_LABELS,
   ALL_ASSET_CATEGORIES,
   type AssetCategory,
 } from "@/lib/asset-store";
+import { useLanguage, useAssetCategoryLabel } from "@/lib/i18n";
 import { formatWithComma } from "@/lib/utils";
 import { FormDialog } from "@/components/form-dialog";
 
@@ -26,6 +26,8 @@ export function AddAsset() {
   const [amountDisplay, setAmountDisplay] = useState("");
   const [institution, setInstitution] = useState("");
   const [note, setNote] = useState("");
+  const { t } = useLanguage();
+  const getAssetCatLabel = useAssetCategoryLabel();
 
   function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
     setAmountDisplay(formatWithComma(e.target.value));
@@ -61,15 +63,15 @@ export function AddAsset() {
     <FormDialog
       open={open}
       onOpenChange={setOpen}
-      title="New Asset"
-      description="Register a new asset holding. Amounts are in JPY."
-      triggerLabel="Add Asset"
+      title={t("addAsset.title")}
+      description={t("addAsset.description")}
+      triggerLabel={t("portfolio.addAsset")}
       triggerVariant="outline"
       onSubmit={handleSubmit}
-      submitLabel="Add Asset"
+      submitLabel={t("addAsset.submit")}
     >
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Category</Label>
+        <Label className="text-card-foreground">{t("addAsset.category")}</Label>
         <Select
           value={category}
           onValueChange={(v) => setCategory(v as AssetCategory)}
@@ -80,7 +82,7 @@ export function AddAsset() {
           <SelectContent>
             {ALL_ASSET_CATEGORIES.map((cat) => (
               <SelectItem key={cat} value={cat}>
-                {ASSET_CATEGORY_LABELS[cat]}
+                {getAssetCatLabel(cat)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -88,10 +90,10 @@ export function AddAsset() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Name</Label>
+        <Label className="text-card-foreground">{t("addAsset.name")}</Label>
         <Input
           type="text"
-          placeholder="e.g. Main Savings, Toyota Stock"
+          placeholder={t("addAsset.placeholder.name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -100,10 +102,10 @@ export function AddAsset() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Institution</Label>
+        <Label className="text-card-foreground">{t("addAsset.institution")}</Label>
         <Input
           type="text"
-          placeholder="e.g. MUFG Bank, SBI Securities"
+          placeholder={t("addAsset.placeholder.institution")}
           value={institution}
           onChange={(e) => setInstitution(e.target.value)}
           required
@@ -113,7 +115,7 @@ export function AddAsset() {
 
       <div className="flex flex-col gap-2">
         <Label className="text-card-foreground">
-          {"Current Value (\u00a5 JPY)"}
+          {t("addAsset.currentValue")} ({"\u00a5"} JPY)
         </Label>
         <Input
           type="text"
@@ -128,11 +130,11 @@ export function AddAsset() {
 
       <div className="flex flex-col gap-2">
         <Label className="text-card-foreground">
-          Note <span className="text-muted-foreground">(optional)</span>
+          {t("addAsset.note")} <span className="text-muted-foreground">({t("addAsset.optional")})</span>
         </Label>
         <Input
           type="text"
-          placeholder="e.g. NISA account, matures 2027"
+          placeholder={t("addAsset.placeholder.note")}
           value={note}
           onChange={(e) => setNote(e.target.value)}
           className="bg-secondary text-secondary-foreground"

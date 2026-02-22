@@ -10,21 +10,35 @@ import {
   Tooltip,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTransactions, getMonthlyData } from "@/lib/store";
+import { useTransactions, getTransactionsForMonth, getTotalIncome, getTotalExpense } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
 import { useMonth } from "@/lib/month-context";
+import { useLanguage, useMonthName } from "@/lib/i18n";
 import { BarChartTooltip } from "@/components/chart-tooltip";
 
 export function MonthlyChart() {
   const allTransactions = useTransactions();
   const { year, month } = useMonth();
   const { formatAmount, currency } = useCurrency();
+  const { t } = useLanguage();
+  const getMonthName = useMonthName();
 
-  const data = getMonthlyData(allTransactions, year, month);
+  // Build monthly data with translated month names
+  const data: { month: string; income: number; expense: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    let m = month - i;
+    let y = year;
+    while (m < 0) { m += 12; y--; }
+    const filtered = getTransactionsForMonth(allTransactions, y, m);
+    data.push({
+      month: getMonthName(m, true),
+      income: getTotalIncome(filtered),
+      expense: getTotalExpense(filtered),
+    });
+  }
 
   function tickFormatter(v: number) {
     if (currency === "VND") {
-      // Show in millions for VND
       return `${(v / 1000000).toFixed(0)}M`;
     }
     return `${(v / 10000).toFixed(0)}0k`;
@@ -34,7 +48,7 @@ export function MonthlyChart() {
     <Card className="border-none shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-card-foreground">
-          Monthly Overview
+          {t("chart.monthlyOverview")}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
@@ -67,7 +81,7 @@ export function MonthlyChart() {
               />
               <Bar
                 dataKey="income"
-                fill="#3b82f6"
+                fill="#0d9488"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={32}
               />
@@ -82,12 +96,12 @@ export function MonthlyChart() {
         </div>
         <div className="flex items-center justify-center gap-6 mt-2">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-[#3b82f6]" />
-            <span className="text-xs text-muted-foreground">Income</span>
+            <div className="w-3 h-3 rounded-sm bg-[#0d9488]" />
+            <span className="text-xs text-muted-foreground">{t("chart.income")}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-sm bg-[#f59e0b]" />
-            <span className="text-xs text-muted-foreground">Expenses</span>
+            <span className="text-xs text-muted-foreground">{t("chart.expenses")}</span>
           </div>
         </div>
       </CardContent>

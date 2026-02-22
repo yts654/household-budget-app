@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/lib/i18n";
+
 interface PieTooltipPayload {
   payload: { label?: string; name?: string; amount: number; color: string };
 }
@@ -42,13 +44,15 @@ export function BarChartTooltip({
   label?: string;
   formatAmount: (v: number) => string;
 }) {
+  const { t } = useLanguage();
+
   if (!active || !payload) return null;
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
       <p className="text-sm font-semibold text-card-foreground mb-1">{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey} className="text-xs" style={{ color: entry.color }}>
-          {entry.dataKey === "income" ? "Income" : "Expense"}:{" "}
+          {entry.dataKey === "income" ? t("tooltip.income") : t("tooltip.expense")}:{" "}
           {formatAmount(entry.value)}
         </p>
       ))}

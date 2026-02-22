@@ -6,20 +6,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   useAssets,
   deleteAsset,
-  ASSET_CATEGORY_LABELS,
   ASSET_CATEGORY_COLORS,
   type Asset,
 } from "@/lib/asset-store";
 import { useCurrency } from "@/lib/currency-context";
+import { useLanguage, useAssetCategoryLabel } from "@/lib/i18n";
 import { Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 function AssetRow({
   asset,
   formatAmount,
+  getAssetCatLabel,
 }: {
   asset: Asset;
   formatAmount: (v: number) => string;
+  getAssetCatLabel: (cat: string) => string;
 }) {
   return (
     <div className="flex items-center gap-3 py-3 px-1 group hover:bg-secondary/50 rounded-lg transition-colors">
@@ -30,7 +32,7 @@ function AssetRow({
           color: ASSET_CATEGORY_COLORS[asset.category],
         }}
       >
-        {ASSET_CATEGORY_LABELS[asset.category].charAt(0)}
+        {getAssetCatLabel(asset.category).charAt(0)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-card-foreground truncate">
@@ -38,7 +40,7 @@ function AssetRow({
         </p>
         <p className="text-xs text-muted-foreground">
           {asset.institution} &middot;{" "}
-          {ASSET_CATEGORY_LABELS[asset.category]}
+          {getAssetCatLabel(asset.category)}
           {asset.note && (
             <span className="text-muted-foreground/60 ml-1">
               &mdash; {asset.note}
@@ -72,6 +74,8 @@ function AssetRow({
 export function AssetList() {
   const assets = useAssets();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
+  const getAssetCatLabel = useAssetCategoryLabel();
 
   const sorted = [...assets].sort((a, b) => b.amount - a.amount);
 
@@ -80,10 +84,10 @@ export function AssetList() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold text-card-foreground">
-            All Assets
+            {t("portfolio.allAssets")}
           </CardTitle>
           <span className="text-xs text-muted-foreground">
-            {assets.length} holdings
+            {assets.length} {t("portfolio.holdings")}
           </span>
         </div>
       </CardHeader>
@@ -95,11 +99,12 @@ export function AssetList() {
                 key={asset.id}
                 asset={asset}
                 formatAmount={formatAmount}
+                getAssetCatLabel={getAssetCatLabel}
               />
             ))}
             {sorted.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-12">
-                No assets recorded
+                {t("portfolio.noAssets")}
               </p>
             )}
           </div>

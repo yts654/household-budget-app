@@ -9,9 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Landmark, Loader2, Eye, EyeOff, Mail } from "lucide-react";
+import { useLanguage, type Locale } from "@/lib/i18n";
+
+const LANG_OPTIONS: { code: Locale; flag: string; label: string }[] = [
+  { code: "en", flag: "\u{1F1FA}\u{1F1F8}", label: "EN" },
+  { code: "ja", flag: "\u{1F1EF}\u{1F1F5}", label: "JA" },
+  { code: "vi", flag: "\u{1F1FB}\u{1F1F3}", label: "VI" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, locale, setLocale } = useLanguage();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,12 +47,12 @@ export default function LoginPage() {
 
     if (result?.error) {
       if (result.error.includes("EMAIL_NOT_VERIFIED")) {
-        setError("Please verify your email before signing in.");
+        setError(t("login.verifyEmail"));
         setShowResendButton(true);
       } else if (result.error.includes("ACCOUNT_LOCKED")) {
-        setError("Too many failed attempts. Please try again in 15 minutes.");
+        setError(t("login.accountLocked"));
       } else {
-        setError("Invalid email or password.");
+        setError(t("login.invalidCredentials"));
       }
       setLoading(false);
       return;
@@ -60,7 +68,7 @@ export default function LoginPage() {
     setSuccessMessage("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("login.passwordsNoMatch"));
       return;
     }
 
@@ -80,8 +88,7 @@ export default function LoginPage() {
       return;
     }
 
-    // Show success message instead of auto-login
-    setSuccessMessage(data.message || "Please check your email to verify your account.");
+    setSuccessMessage(data.message || t("login.checkEmail"));
     setTab("login");
     setLoading(false);
   }
@@ -96,10 +103,10 @@ export default function LoginPage() {
 
     const data = await res.json();
     if (res.ok) {
-      setSuccessMessage("Verification email sent. Please check your inbox.");
+      setSuccessMessage(t("login.verificationSent"));
       setShowResendButton(false);
     } else {
-      setError(data.error || "Failed to resend verification email.");
+      setError(data.error || t("login.resendFailed"));
     }
     setResendLoading(false);
   }
@@ -112,23 +119,40 @@ export default function LoginPage() {
             <Landmark className="h-8 w-8 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-card-foreground">
-            Kakeibo
+            {t("brand.name")}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Household Budget Tracker
+            {t("brand.fullTitle")}
           </p>
+
+          {/* Language Toggle */}
+          <div className="flex items-center justify-center gap-1 mt-3">
+            {LANG_OPTIONS.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => setLocale(lang.code)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  locale === lang.code
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                {lang.flag} {lang.label}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={(v) => { setTab(v as "login" | "register"); setError(""); setSuccessMessage(""); setShowResendButton(false); }}>
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="register">Create Account</TabsTrigger>
+              <TabsTrigger value="login">{t("login.signIn")}</TabsTrigger>
+              <TabsTrigger value="register">{t("login.createAccount")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email">{t("login.email")}</Label>
                   <Input
                     id="login-email"
                     type="email"
@@ -140,7 +164,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <Label htmlFor="login-password">{t("login.password")}</Label>
                   <div className="relative">
                     <Input
                       id="login-password"
@@ -180,12 +204,12 @@ export default function LoginPage() {
                   >
                     {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <Mail className="mr-2 h-4 w-4" />
-                    Resend Verification Email
+                    {t("login.resendVerification")}
                   </Button>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
+                  {t("login.signIn")}
                 </Button>
               </form>
             </TabsContent>
@@ -193,11 +217,11 @@ export default function LoginPage() {
             <TabsContent value="register">
               <form onSubmit={handleRegister} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="reg-name">Display Name</Label>
+                  <Label htmlFor="reg-name">{t("login.displayName")}</Label>
                   <Input
                     id="reg-name"
                     type="text"
-                    placeholder="Your Name"
+                    placeholder={t("login.yourName")}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
@@ -205,7 +229,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="reg-email">Email</Label>
+                  <Label htmlFor="reg-email">{t("login.email")}</Label>
                   <Input
                     id="reg-email"
                     type="email"
@@ -217,12 +241,12 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="reg-password">Password</Label>
+                  <Label htmlFor="reg-password">{t("login.password")}</Label>
                   <div className="relative">
                     <Input
                       id="reg-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Min 10 chars, upper+lower+number+special"
+                      placeholder={t("settings.passwordPlaceholder")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -242,7 +266,7 @@ export default function LoginPage() {
                   <PasswordStrength password={password} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="reg-confirm">Confirm Password</Label>
+                  <Label htmlFor="reg-confirm">{t("login.confirmPassword")}</Label>
                   <Input
                     id="reg-confirm"
                     type="password"
@@ -257,7 +281,7 @@ export default function LoginPage() {
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Account
+                  {t("login.createAccount")}
                 </Button>
               </form>
             </TabsContent>
@@ -269,19 +293,21 @@ export default function LoginPage() {
 }
 
 function PasswordStrength({ password }: { password: string }) {
+  const { t } = useLanguage();
+
   if (!password) return null;
 
   const checks = [
-    { label: "10+ characters", pass: password.length >= 10 },
-    { label: "Lowercase", pass: /[a-z]/.test(password) },
-    { label: "Uppercase", pass: /[A-Z]/.test(password) },
-    { label: "Number", pass: /[0-9]/.test(password) },
-    { label: "Special char", pass: /[^a-zA-Z0-9]/.test(password) },
+    { label: t("pw.tenCharsFull"), pass: password.length >= 10 },
+    { label: t("pw.lowercase"), pass: /[a-z]/.test(password) },
+    { label: t("pw.uppercase"), pass: /[A-Z]/.test(password) },
+    { label: t("pw.number"), pass: /[0-9]/.test(password) },
+    { label: t("pw.special"), pass: /[^a-zA-Z0-9]/.test(password) },
   ];
 
   const passed = checks.filter((c) => c.pass).length;
-  const strength =
-    passed <= 1 ? "Weak" : passed <= 2 ? "Fair" : passed <= 4 ? "Good" : "Strong";
+  const strengthLabel =
+    passed <= 1 ? t("pw.weak") : passed <= 2 ? t("pw.fair") : passed <= 4 ? t("pw.good") : t("pw.strong");
   const color =
     passed <= 1
       ? "bg-destructive"
@@ -310,7 +336,7 @@ function PasswordStrength({ password }: { password: string }) {
             {c.pass ? "\u2713" : "\u2717"} {c.label}
           </span>
         ))}
-        <span className="text-[10px] text-muted-foreground ml-auto">{strength}</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">{strengthLabel}</span>
       </div>
     </div>
   );

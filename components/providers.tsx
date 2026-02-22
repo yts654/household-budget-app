@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { SWRConfig } from "swr";
 import { Toaster } from "sonner";
+import { LanguageProvider } from "@/lib/i18n";
 import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -14,7 +15,9 @@ export function Providers({ children }: { children: ReactNode }) {
           dedupingInterval: 5000,
         }}
       >
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
         <Toaster position="bottom-right" richColors />
       </SWRConfig>
     </SessionProvider>

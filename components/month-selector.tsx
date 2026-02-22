@@ -1,7 +1,8 @@
 "use client";
 
 import { useMonth } from "@/lib/month-context";
-import { useTransactions, getAvailableMonths } from "@/lib/store";
+import { useTransactions } from "@/lib/store";
+import { useLanguage, useMonthName } from "@/lib/i18n";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,27 @@ import { Button } from "@/components/ui/button";
 export function MonthSelector() {
   const { year, month, setMonth } = useMonth();
   const transactions = useTransactions();
-  const availableMonths = getAvailableMonths(transactions);
+  const getMonthName = useMonthName();
+
+  // Build available months from transactions with translated names
+  const set = new Set<string>();
+  const availableMonths: { year: number; month: number; label: string }[] = [];
+  for (const tx of transactions) {
+    const d = new Date(tx.date);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!set.has(key)) {
+      set.add(key);
+      availableMonths.push({
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        label: `${getMonthName(d.getMonth())} ${d.getFullYear()}`,
+      });
+    }
+  }
+  availableMonths.sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    return b.month - a.month;
+  });
 
   const currentKey = `${year}-${month}`;
   const currentIndex = availableMonths.findIndex(
@@ -24,7 +45,7 @@ export function MonthSelector() {
 
   const currentLabel =
     availableMonths.find((m) => m.year === year && m.month === month)?.label ??
-    `${["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][month]} ${year}`;
+    `${getMonthName(month)} ${year}`;
 
   function goNext() {
     if (currentIndex > 0) {

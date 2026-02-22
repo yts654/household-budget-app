@@ -2,17 +2,32 @@
 
 import { Landmark, LayoutDashboard, Receipt, Briefcase, PieChart, Settings } from "lucide-react";
 import { useView, type ViewId } from "@/lib/view-context";
+import { useLanguage, type Locale } from "@/lib/i18n";
 
-const NAV_ITEMS: { icon: typeof LayoutDashboard; viewId: ViewId; label: string }[] = [
-  { icon: LayoutDashboard, viewId: "dashboard", label: "Home" },
-  { icon: Receipt, viewId: "transactions", label: "Txns" },
-  { icon: Briefcase, viewId: "portfolio", label: "Portfolio" },
-  { icon: PieChart, viewId: "analytics", label: "Analytics" },
-  { icon: Settings, viewId: "settings", label: "Settings" },
+const LANG_OPTIONS: { code: Locale; flag: string }[] = [
+  { code: "en", flag: "\u{1F1FA}\u{1F1F8}" },
+  { code: "ja", flag: "\u{1F1EF}\u{1F1F5}" },
+  { code: "vi", flag: "\u{1F1FB}\u{1F1F3}" },
+];
+
+const NAV_ITEMS: { icon: typeof LayoutDashboard; viewId: ViewId; labelKey: string }[] = [
+  { icon: LayoutDashboard, viewId: "dashboard", labelKey: "nav.home" },
+  { icon: Receipt, viewId: "transactions", labelKey: "nav.txns" },
+  { icon: Briefcase, viewId: "portfolio", labelKey: "nav.portfolio" },
+  { icon: PieChart, viewId: "analytics", labelKey: "nav.analytics" },
+  { icon: Settings, viewId: "settings", labelKey: "nav.settings" },
 ];
 
 export function MobileHeader() {
   const { view, setView } = useView();
+  const { t, locale, setLocale } = useLanguage();
+
+  // Cycle to next language on tap
+  function cycleLanguage() {
+    const currentIndex = LANG_OPTIONS.findIndex((l) => l.code === locale);
+    const next = LANG_OPTIONS[(currentIndex + 1) % LANG_OPTIONS.length];
+    setLocale(next.code);
+  }
 
   return (
     <>
@@ -20,9 +35,16 @@ export function MobileHeader() {
         <div className="bg-primary rounded-lg p-1.5">
           <Landmark className="h-4 w-4 text-primary-foreground" />
         </div>
-        <h1 className="text-base font-bold text-card-foreground tracking-tight">
-          Kakeibo
+        <h1 className="text-base font-bold text-card-foreground tracking-tight flex-1">
+          {t("brand.name")}
         </h1>
+        <button
+          onClick={cycleLanguage}
+          className="text-lg px-2 py-1 rounded-lg hover:bg-secondary transition-colors"
+          aria-label="Switch language"
+        >
+          {LANG_OPTIONS.find((l) => l.code === locale)?.flag}
+        </button>
       </header>
 
       {/* Bottom tab bar on mobile */}
@@ -38,7 +60,7 @@ export function MobileHeader() {
             }`}
           >
             <item.icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
           </button>
         ))}
       </nav>

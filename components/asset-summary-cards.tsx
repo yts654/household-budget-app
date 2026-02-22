@@ -4,12 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAssets, getAssetAllocation } from "@/lib/asset-store";
 import { useTransactions, getCumulativeSavings } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
+import { useLanguage } from "@/lib/i18n";
 import { Briefcase, Shield, PiggyBank } from "lucide-react";
 
 export function AssetSummaryCards() {
   const assets = useAssets();
   const transactions = useTransactions();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
 
   const accumulatedSavings = getCumulativeSavings(transactions);
   const allocation = getAssetAllocation(assets);
@@ -20,25 +22,25 @@ export function AssetSummaryCards() {
 
   const cards = [
     {
-      title: "Accumulated Savings",
+      title: t("assetSummary.accumulated"),
       value: formatAmount(accumulatedSavings),
-      subtitle: "From monthly budget",
+      subtitle: t("assetSummary.fromBudget"),
       icon: PiggyBank,
       iconColor: "text-[#10b981]",
       bgColor: "bg-[#10b981]/10",
     },
     {
-      title: "Investments",
+      title: t("assetSummary.investments"),
       value: formatAmount(investmentAmount),
-      subtitle: "Stocks, ETFs, Crypto",
+      subtitle: t("assetSummary.stocksEtf"),
       icon: Briefcase,
       iconColor: "text-[#f59e0b]",
       bgColor: "bg-[#f59e0b]/10",
     },
     {
-      title: "Liquid + Fixed",
+      title: t("assetSummary.liquidFixed"),
       value: formatAmount(liquidAmount + fixedAmount),
-      subtitle: `Liquid ${formatAmount(liquidAmount)}`,
+      subtitle: `${t("assetSummary.liquid")} ${formatAmount(liquidAmount)}`,
       icon: Shield,
       iconColor: "text-primary",
       bgColor: "bg-primary/10",
@@ -50,7 +52,7 @@ export function AssetSummaryCards() {
       {cards.map((card) => (
         <Card
           key={card.title}
-          className="border-none shadow-sm hover:shadow-md transition-shadow"
+          className="border-none shadow-sm card-hover"
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-3">

@@ -16,6 +16,7 @@ import {
 } from "@/lib/asset-store";
 import { useTransactions, getCumulativeSavings } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
+import { useLanguage, useAssetCategoryLabel } from "@/lib/i18n";
 import { PieChartTooltip } from "@/components/chart-tooltip";
 import { Briefcase, Shield, Droplets, PiggyBank } from "lucide-react";
 
@@ -23,13 +24,31 @@ export function PortfolioOverview() {
   const assets = useAssets();
   const transactions = useTransactions();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
+  const getAssetCatLabel = useAssetCategoryLabel();
 
   const accumulatedSavings = getCumulativeSavings(transactions);
   const totalRegistered = getTotalAssets(assets);
   const totalAssets = totalRegistered + accumulatedSavings;
-  const breakdown = getAssetBreakdown(assets);
+
+  // Build breakdown with translated labels
+  const rawBreakdown = getAssetBreakdown(assets);
+  const breakdown = rawBreakdown.map((item) => ({
+    ...item,
+    label: getAssetCatLabel(item.category),
+  }));
+
   const rawAllocation = getAssetAllocation(assets);
-  // Add accumulated savings as a separate allocation slice
+
+  // Translate allocation names
+  const allocationNameMap: Record<string, string> = {
+    Liquid: t("allocation.liquid"),
+    Investment: t("allocation.investment"),
+    Fixed: t("allocation.fixed"),
+    Savings: t("allocation.savings"),
+    Other: t("allocation.other"),
+  };
+
   const allocation = accumulatedSavings > 0
     ? [...rawAllocation, { name: "Savings", amount: accumulatedSavings, color: "#10b981" }]
     : rawAllocation;
@@ -47,7 +66,7 @@ export function PortfolioOverview() {
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-card-foreground">
-            Asset Allocation
+            {t("portfolio.assetAllocation")}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -75,7 +94,7 @@ export function PortfolioOverview() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xs text-muted-foreground">Net Worth</span>
+                <span className="text-xs text-muted-foreground">{t("portfolio.netWorth")}</span>
                 <span className="text-sm font-bold text-card-foreground">
                   {formatAmount(totalAssets)}
                 </span>
@@ -100,7 +119,7 @@ export function PortfolioOverview() {
                     />
                     <div>
                       <p className="text-xs font-medium text-card-foreground">
-                        {item.name}
+                        {allocationNameMap[item.name] || item.name}
                       </p>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {pct}%
@@ -118,7 +137,7 @@ export function PortfolioOverview() {
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-card-foreground">
-            By Category
+            {t("portfolio.byCategory")}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -147,10 +166,10 @@ export function PortfolioOverview() {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-xs text-muted-foreground">
-                  {breakdown.length} types
+                  {breakdown.length} {t("portfolio.types")}
                 </span>
                 <span className="text-sm font-bold text-card-foreground">
-                  {assets.length} items
+                  {assets.length} {t("portfolio.items")}
                 </span>
               </div>
             </div>

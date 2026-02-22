@@ -8,13 +8,12 @@ import {
   getTransactionsForMonth,
   getTotalIncome,
   getTotalExpense,
-  getCategoryBreakdown,
-  CATEGORY_LABELS,
   CATEGORY_COLORS,
   type Category,
 } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
 import { useMonth } from "@/lib/month-context";
+import { useLanguage, useCategoryLabel, useMonthName } from "@/lib/i18n";
 import {
   TrendingUp,
   TrendingDown,
@@ -23,8 +22,6 @@ import {
   Minus,
   MessageSquareText,
 } from "lucide-react";
-
-const MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function getPreviousMonth(year: number, month: number) {
   let pMonth = month - 1;
@@ -61,57 +58,52 @@ function deltaColor(direction: "up" | "down" | "flat", isExpense?: boolean) {
   return direction === "up" ? "text-[#10b981]" : "text-destructive";
 }
 
-/** Generate a short, data-driven summary of the month. */
 function generateSummary(
+  t: (key: string) => string,
   currentIncome: number,
   prevIncome: number,
   currentExpense: number,
   prevExpense: number,
   topIncrease: { label: string; pct: number } | null,
   topDecrease: { label: string; pct: number } | null,
-  currentLabel: string,
   prevLabel: string,
   formatAmount: (n: number) => string,
 ): string {
   const parts: string[] = [];
 
-  // Income commentary
   const incDelta = calcDelta(currentIncome, prevIncome);
   if (incDelta.direction === "up") {
-    parts.push(`Income rose ${formatPct(incDelta.pct)} compared to ${prevLabel}, reaching ${formatAmount(currentIncome)}.`);
+    parts.push(`${t("analytics.incomeRose")} ${formatPct(incDelta.pct)} ${t("analytics.comparedTo")} ${prevLabel}, ${t("analytics.reaching")} ${formatAmount(currentIncome)}.`);
   } else if (incDelta.direction === "down") {
-    parts.push(`Income declined ${Math.abs(incDelta.pct)}% from ${prevLabel}, totaling ${formatAmount(currentIncome)}.`);
+    parts.push(`${t("analytics.incomeDeclined")} ${Math.abs(incDelta.pct)}% ${t("analytics.from")} ${prevLabel}, ${t("analytics.totaling")} ${formatAmount(currentIncome)}.`);
   } else {
-    parts.push(`Income remained steady at ${formatAmount(currentIncome)}.`);
+    parts.push(`${t("analytics.incomeSteady")} ${formatAmount(currentIncome)}.`);
   }
 
-  // Expense commentary
   const expDelta = calcDelta(currentExpense, prevExpense);
   if (expDelta.direction === "up") {
-    parts.push(`Spending increased by ${formatPct(expDelta.pct)} to ${formatAmount(currentExpense)}.`);
+    parts.push(`${t("analytics.spendingIncreased")} ${formatPct(expDelta.pct)} ${t("analytics.to")} ${formatAmount(currentExpense)}.`);
   } else if (expDelta.direction === "down") {
-    parts.push(`Spending dropped ${Math.abs(expDelta.pct)}%, down to ${formatAmount(currentExpense)}.`);
+    parts.push(`${t("analytics.spendingDropped")} ${Math.abs(expDelta.pct)}%, ${t("analytics.downTo")} ${formatAmount(currentExpense)}.`);
   } else {
-    parts.push(`Spending held flat at ${formatAmount(currentExpense)}.`);
+    parts.push(`${t("analytics.spendingFlat")} ${formatAmount(currentExpense)}.`);
   }
 
-  // Net savings
   const netCurrent = currentIncome - currentExpense;
   const netPrev = prevIncome - prevExpense;
   if (netCurrent > 0 && netCurrent > netPrev) {
-    parts.push(`Net savings improved to ${formatAmount(netCurrent)}.`);
+    parts.push(`${t("analytics.savingsImproved")} ${formatAmount(netCurrent)}.`);
   } else if (netCurrent > 0) {
-    parts.push(`Net savings were ${formatAmount(netCurrent)}.`);
+    parts.push(`${t("analytics.savingsWere")} ${formatAmount(netCurrent)}.`);
   } else if (netCurrent < 0) {
-    parts.push(`The month ended with a deficit of ${formatAmount(Math.abs(netCurrent))}.`);
+    parts.push(`${t("analytics.deficit")} ${formatAmount(Math.abs(netCurrent))}.`);
   }
 
-  // Category highlights
   if (topIncrease && topIncrease.pct > 10) {
-    parts.push(`Biggest increase: ${topIncrease.label} (+${topIncrease.pct}%).`);
+    parts.push(`${t("analytics.biggestIncrease")} ${topIncrease.label} (+${topIncrease.pct}%).`);
   }
   if (topDecrease && topDecrease.pct < -10) {
-    parts.push(`Largest cut: ${topDecrease.label} (${topDecrease.pct}%).`);
+    parts.push(`${t("analytics.largestCut")} ${topDecrease.label} (${topDecrease.pct}%).`);
   }
 
   return parts.join(" ");
@@ -121,6 +113,9 @@ export function AnalyticsView() {
   const allTransactions = useTransactions();
   const { year, month } = useMonth();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
+  const getCatLabel = useCategoryLabel();
+  const getMonthName = useMonthName();
 
   const currentTx = getTransactionsForMonth(allTransactions, year, month);
   const prev = getPreviousMonth(year, month);
@@ -137,12 +132,28 @@ export function AnalyticsView() {
   const expenseDelta = calcDelta(currentExpense, prevExpense);
   const netDelta = calcDelta(currentNet, prevNet);
 
-  const currentLabel = MONTH_NAMES_SHORT[month];
-  const prevLabel = MONTH_NAMES_SHORT[prev.month];
+  const currentLabel = getMonthName(month, true);
+  const prevLabel = getMonthName(prev.month, true);
 
-  // --- Expense category comparison ---
-  const currentExpenseBreakdown = getCategoryBreakdown(currentTx);
-  const prevExpenseBreakdown = getCategoryBreakdown(prevTx);
+  // Expense category comparison with translated labels
+  function getCategoryBreakdownTranslated(txs: typeof currentTx) {
+    const expenses = txs.filter((tx) => tx.type === "expense");
+    const map = new Map<Category, number>();
+    for (const tx of expenses) {
+      map.set(tx.category, (map.get(tx.category) || 0) + tx.amount);
+    }
+    return Array.from(map.entries())
+      .map(([category, amount]) => ({
+        category,
+        label: getCatLabel(category),
+        amount,
+        color: CATEGORY_COLORS[category],
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
+  const currentExpenseBreakdown = getCategoryBreakdownTranslated(currentTx);
+  const prevExpenseBreakdown = getCategoryBreakdownTranslated(prevTx);
   const prevExpenseMap = new Map(prevExpenseBreakdown.map((b) => [b.category, b.amount]));
 
   const expenseCategoryRows = currentExpenseBreakdown.map((item) => {
@@ -150,7 +161,7 @@ export function AnalyticsView() {
     const d = calcDelta(item.amount, prevAmt);
     return { ...item, prevAmount: prevAmt, delta: d };
   });
-  // Categories from last month that vanished this month
+
   const currentExpenseCats = new Set(currentExpenseBreakdown.map((b) => b.category));
   const removedExpenseCats = prevExpenseBreakdown
     .filter((b) => !currentExpenseCats.has(b.category))
@@ -162,15 +173,14 @@ export function AnalyticsView() {
       removed: true,
     }));
 
-  // --- Income source comparison ---
-  const currentIncomeTx = currentTx.filter((t) => t.type === "income");
-  const prevIncomeTx = prevTx.filter((t) => t.type === "income");
+  // Income source comparison
+  const currentIncomeTx = currentTx.filter((tx) => tx.type === "income");
+  const prevIncomeTx = prevTx.filter((tx) => tx.type === "income");
 
-  // Group income by description
   function groupByDesc(txs: typeof currentIncomeTx) {
     const map = new Map<string, number>();
-    for (const t of txs) {
-      map.set(t.description, (map.get(t.description) || 0) + t.amount);
+    for (const tx of txs) {
+      map.set(tx.description, (map.get(tx.description) || 0) + tx.amount);
     }
     return map;
   }
@@ -185,7 +195,7 @@ export function AnalyticsView() {
     return { source, current: cur, previous: pre, delta: d };
   }).sort((a, b) => b.current - a.current);
 
-  // --- Summary insight ---
+  // Summary insight
   let topIncrease: { label: string; pct: number } | null = null;
   let topDecrease: { label: string; pct: number } | null = null;
   for (const row of expenseCategoryRows) {
@@ -197,8 +207,8 @@ export function AnalyticsView() {
     }
   }
   const summaryText = generateSummary(
-    currentIncome, prevIncome, currentExpense, prevExpense,
-    topIncrease, topDecrease, currentLabel, prevLabel, formatAmount,
+    t, currentIncome, prevIncome, currentExpense, prevExpense,
+    topIncrease, topDecrease, prevLabel, formatAmount,
   );
 
   return (
@@ -214,7 +224,7 @@ export function AnalyticsView() {
             </div>
             <div>
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-                {currentLabel} Summary
+                {currentLabel} {t("analytics.summary")}
               </p>
               <p className="text-sm leading-relaxed text-card-foreground">
                 {summaryText}
@@ -227,11 +237,11 @@ export function AnalyticsView() {
       {/* Month-over-Month Comparison Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Income", current: currentIncome, prev: prevIncome, delta: incomeDelta, isExpense: false, icon: TrendingUp },
-          { label: "Expenses", current: currentExpense, prev: prevExpense, delta: expenseDelta, isExpense: true, icon: TrendingDown },
-          { label: "Net Savings", current: currentNet, prev: prevNet, delta: netDelta, isExpense: false, icon: TrendingUp },
+          { label: t("analytics.income"), current: currentIncome, prev: prevIncome, delta: incomeDelta, isExpense: false, icon: TrendingUp },
+          { label: t("analytics.expenses"), current: currentExpense, prev: prevExpense, delta: expenseDelta, isExpense: true, icon: TrendingDown },
+          { label: t("analytics.netSavings"), current: currentNet, prev: prevNet, delta: netDelta, isExpense: false, icon: TrendingUp },
         ].map((card) => (
-          <Card key={card.label} className="border-none shadow-sm">
+          <Card key={card.label} className="border-none shadow-sm card-hover">
             <CardContent className="pt-5 pb-4 px-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -256,7 +266,7 @@ export function AnalyticsView() {
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-card-foreground">
-            Income Sources: {currentLabel} vs {prevLabel}
+            {t("analytics.incomeSources")}: {currentLabel} {t("analytics.vs")} {prevLabel}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -264,10 +274,10 @@ export function AnalyticsView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2.5 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Source</th>
+                  <th className="text-left py-2.5 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("analytics.source")}</th>
                   <th className="text-right py-2.5 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{currentLabel}</th>
                   <th className="text-right py-2.5 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{prevLabel}</th>
-                  <th className="text-right py-2.5 pl-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Change</th>
+                  <th className="text-right py-2.5 pl-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("analytics.change")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,14 +294,14 @@ export function AnalyticsView() {
                     <td className="text-right py-2.5 pl-4">
                       <div className={`flex items-center justify-end gap-1 text-xs font-semibold ${deltaColor(row.delta.direction)}`}>
                         <DeltaIcon direction={row.delta.direction} />
-                        {row.delta.pct === 100 && row.previous === 0 ? "New" : formatPct(row.delta.pct)}
+                        {row.delta.pct === 100 && row.previous === 0 ? t("analytics.new") : formatPct(row.delta.pct)}
                       </div>
                     </td>
                   </tr>
                 ))}
                 {incomeRows.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">No income data for comparison</td>
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground">{t("analytics.noIncomeData")}</td>
                   </tr>
                 )}
               </tbody>
@@ -304,7 +314,7 @@ export function AnalyticsView() {
       <Card className="border-none shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-card-foreground">
-            Expense Categories: {currentLabel} vs {prevLabel}
+            {t("analytics.expenseCategories")}: {currentLabel} {t("analytics.vs")} {prevLabel}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -312,10 +322,10 @@ export function AnalyticsView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2.5 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</th>
+                  <th className="text-left py-2.5 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("analytics.category")}</th>
                   <th className="text-right py-2.5 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{currentLabel}</th>
                   <th className="text-right py-2.5 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{prevLabel}</th>
-                  <th className="text-right py-2.5 pl-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Change</th>
+                  <th className="text-right py-2.5 pl-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("analytics.change")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -332,7 +342,7 @@ export function AnalyticsView() {
                     <td className="text-right py-2.5 pl-4">
                       <div className={`flex items-center justify-end gap-1 text-xs font-semibold ${deltaColor(item.delta.direction, true)}`}>
                         <DeltaIcon direction={item.delta.direction} />
-                        {item.delta.pct === 100 && item.prevAmount === 0 ? "New" : formatPct(item.delta.pct)}
+                        {item.delta.pct === 100 && item.prevAmount === 0 ? t("analytics.new") : formatPct(item.delta.pct)}
                       </div>
                     </td>
                   </tr>
@@ -357,7 +367,7 @@ export function AnalyticsView() {
                 ))}
                 {expenseCategoryRows.length === 0 && removedExpenseCats.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">No expense data for comparison</td>
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground">{t("analytics.noExpenseData")}</td>
                   </tr>
                 )}
               </tbody>

@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/providers'
 import './globals.css'
-
-const _geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: 'Kakeibo - Household Budget Tracker',
@@ -30,7 +27,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#3b82f6',
+  themeColor: '#0d9488',
   width: 'device-width',
   initialScale: 1,
 }
@@ -42,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${_geistMono.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <Providers>
           {children}
         </Providers>

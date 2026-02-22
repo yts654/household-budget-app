@@ -17,17 +17,19 @@ import { MonthSelector } from "@/components/month-selector";
 import { CurrencyProvider } from "@/lib/currency-context";
 import { MonthProvider } from "@/lib/month-context";
 import { ViewProvider, useView } from "@/lib/view-context";
-
-const VIEW_TITLES: Record<string, string> = {
-  dashboard: "Dashboard",
-  transactions: "Transactions",
-  portfolio: "Portfolio",
-  analytics: "Analytics",
-  settings: "Settings",
-};
+import { useLanguage } from "@/lib/i18n";
 
 function AppContent() {
   const { view } = useView();
+  const { t } = useLanguage();
+
+  const VIEW_TITLES: Record<string, string> = {
+    dashboard: t("nav.dashboard"),
+    transactions: t("nav.transactions"),
+    portfolio: t("nav.portfolio"),
+    analytics: t("nav.analytics"),
+    settings: t("nav.settings"),
+  };
 
   return (
     <div className="flex min-h-screen bg-background">

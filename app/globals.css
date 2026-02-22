@@ -4,47 +4,47 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.99 0.003 85);
-  --foreground: oklch(0.15 0.02 250);
+  /* ===== Bright & Cheerful Budget App Theme ===== */
+  --background: oklch(0.985 0.004 100);
+  --foreground: oklch(0.18 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 250);
+  --card-foreground: oklch(0.18 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 250);
-  --primary: oklch(0.60 0.15 240);
-  --primary-foreground: oklch(0.99 0.003 85);
-  --secondary: oklch(0.97 0.006 240);
-  --secondary-foreground: oklch(0.25 0.03 240);
-  --muted: oklch(0.96 0.004 240);
-  --muted-foreground: oklch(0.55 0.015 250);
-  --accent: oklch(0.60 0.15 240);
-  --accent-foreground: oklch(0.99 0.003 85);
-  --destructive: oklch(0.63 0.22 27);
+  --popover-foreground: oklch(0.18 0.02 260);
+  --primary: oklch(0.65 0.17 168);
+  --primary-foreground: oklch(0.99 0.003 100);
+  --secondary: oklch(0.96 0.015 168);
+  --secondary-foreground: oklch(0.25 0.05 168);
+  --muted: oklch(0.96 0.008 260);
+  --muted-foreground: oklch(0.50 0.02 260);
+  --accent: oklch(0.65 0.17 168);
+  --accent-foreground: oklch(0.99 0.003 100);
+  --destructive: oklch(0.63 0.22 25);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.92 0.006 240);
-  --input: oklch(0.96 0.004 240);
-  --ring: oklch(0.60 0.15 240);
-  --chart-1: oklch(0.60 0.15 240);
-  --chart-2: oklch(0.72 0.18 45);
-  --chart-3: oklch(0.66 0.17 155);
-  --chart-4: oklch(0.76 0.16 65);
-  --chart-5: oklch(0.62 0.15 20);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.22 0.04 250);
-  --sidebar-foreground: oklch(0.93 0.005 240);
-  --sidebar-primary: oklch(0.98 0.005 85);
-  --sidebar-primary-foreground: oklch(0.22 0.04 250);
-  --sidebar-accent: oklch(0.30 0.04 250);
-  --sidebar-accent-foreground: oklch(0.95 0.005 240);
-  --sidebar-border: oklch(0.32 0.04 250);
-  --sidebar-ring: oklch(0.98 0.005 85);
-  --success: oklch(0.69 0.18 160);
-  --warning: oklch(0.78 0.16 80);
+  --border: oklch(0.92 0.01 260);
+  --input: oklch(0.96 0.008 260);
+  --ring: oklch(0.65 0.17 168);
+  --chart-1: oklch(0.65 0.17 168);
+  --chart-2: oklch(0.75 0.16 55);
+  --chart-3: oklch(0.68 0.17 290);
+  --chart-4: oklch(0.72 0.18 40);
+  --chart-5: oklch(0.62 0.15 200);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.28 0.06 168);
+  --sidebar-foreground: oklch(0.95 0.005 168);
+  --sidebar-primary: oklch(0.98 0.005 100);
+  --sidebar-primary-foreground: oklch(0.28 0.06 168);
+  --sidebar-accent: oklch(0.35 0.06 168);
+  --sidebar-accent-foreground: oklch(0.97 0.005 168);
+  --sidebar-border: oklch(0.38 0.05 168);
+  --sidebar-ring: oklch(0.98 0.005 100);
+  --success: oklch(0.72 0.19 155);
+  --warning: oklch(0.82 0.16 80);
 }
 
 @theme inline {
-  --font-sans: 'Times New Roman', 'Times', Georgia, serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --font-serif: 'Times New Roman', 'Times', Georgia, serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -92,4 +92,42 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ===== Custom Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.82 0.02 168);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.70 0.04 168);
+}
+
+/* ===== Background Pattern ===== */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 20%, oklch(0.90 0.06 168 / 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, oklch(0.88 0.08 55 / 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, oklch(0.92 0.04 290 / 0.06) 0%, transparent 60%);
+}
+
+/* ===== Smooth card hover transition ===== */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 4px 20px oklch(0.50 0.05 168 / 0.1);
+  transform: translateY(-1px);
 }

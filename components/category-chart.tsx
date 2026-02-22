@@ -11,27 +11,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   useTransactions,
   getTransactionsForMonth,
-  getCategoryBreakdown,
   getTotalExpense,
+  CATEGORY_COLORS,
+  EXPENSE_CATEGORIES,
+  type Category,
 } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
 import { useMonth } from "@/lib/month-context";
+import { useLanguage, useCategoryLabel } from "@/lib/i18n";
 import { PieChartTooltip } from "@/components/chart-tooltip";
 
 export function CategoryChart() {
   const allTransactions = useTransactions();
   const { year, month } = useMonth();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
+  const getCatLabel = useCategoryLabel();
 
   const transactions = getTransactionsForMonth(allTransactions, year, month);
-  const breakdown = getCategoryBreakdown(transactions);
   const totalExpense = getTotalExpense(transactions);
+
+  // Build breakdown with translated labels
+  const expenses = transactions.filter((tx) => tx.type === "expense");
+  const map = new Map<Category, number>();
+  for (const tx of expenses) {
+    map.set(tx.category, (map.get(tx.category) || 0) + tx.amount);
+  }
+  const breakdown = Array.from(map.entries())
+    .map(([category, amount]) => ({
+      category,
+      label: getCatLabel(category),
+      amount,
+      color: CATEGORY_COLORS[category],
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
   return (
     <Card className="border-none shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-card-foreground">
-          Spending by Category
+          {t("chart.spendingByCategory")}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
@@ -57,7 +76,7 @@ export function CategoryChart() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="text-xs text-muted-foreground">{t("chart.total")}</span>
               <span className="text-sm font-bold text-card-foreground">
                 {formatAmount(totalExpense)}
               </span>

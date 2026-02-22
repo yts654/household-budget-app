@@ -10,12 +10,14 @@ import {
 } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
 import { useMonth } from "@/lib/month-context";
+import { useLanguage } from "@/lib/i18n";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 
 export function SummaryCards() {
   const allTransactions = useTransactions();
   const { year, month } = useMonth();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
 
   const transactions = getTransactionsForMonth(allTransactions, year, month);
   const income = getTotalIncome(transactions);
@@ -25,28 +27,28 @@ export function SummaryCards() {
 
   const cards = [
     {
-      title: "Monthly Income",
+      title: t("summary.monthlyIncome"),
       value: formatAmount(income),
       icon: TrendingUp,
       iconColor: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
-      title: "Monthly Expenses",
+      title: t("summary.monthlyExpenses"),
       value: formatAmount(expense),
       icon: TrendingDown,
       iconColor: "text-destructive",
       bgColor: "bg-destructive/10",
     },
     {
-      title: "Balance",
+      title: t("summary.balance"),
       value: formatAmount(balance),
       icon: Wallet,
       iconColor: "text-foreground",
       bgColor: "bg-secondary",
     },
     {
-      title: "Savings Rate",
+      title: t("summary.savingsRate"),
       value: `${savingsRate}%`,
       icon: PiggyBank,
       iconColor: "text-warning",
@@ -59,7 +61,7 @@ export function SummaryCards() {
       {cards.map((card) => (
         <Card
           key={card.title}
-          className="border-none shadow-sm hover:shadow-md transition-shadow"
+          className="border-none shadow-sm card-hover"
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-3">

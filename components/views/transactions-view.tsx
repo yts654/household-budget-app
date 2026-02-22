@@ -6,12 +6,12 @@ import {
   useTransactions,
   getTransactionsForMonth,
   deleteTransaction,
-  CATEGORY_LABELS,
   CATEGORY_COLORS,
   type Transaction,
 } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
 import { useMonth } from "@/lib/month-context";
+import { useLanguage, useCategoryLabel } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,9 +21,11 @@ import { format } from "date-fns";
 function TransactionRow({
   tx,
   formatAmount,
+  getCatLabel,
 }: {
   tx: Transaction;
   formatAmount: (v: number) => string;
+  getCatLabel: (cat: string) => string;
 }) {
   const isIncome = tx.type === "income";
   return (
@@ -35,14 +37,14 @@ function TransactionRow({
           color: CATEGORY_COLORS[tx.category],
         }}
       >
-        {CATEGORY_LABELS[tx.category].charAt(0)}
+        {getCatLabel(tx.category).charAt(0)}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-card-foreground truncate">
           {tx.description}
         </p>
         <p className="text-xs text-muted-foreground">
-          {CATEGORY_LABELS[tx.category]}
+          {getCatLabel(tx.category)}
         </p>
       </div>
       <div className="text-right shrink-0">
@@ -77,6 +79,8 @@ export function TransactionsView() {
   const allTransactions = useTransactions();
   const { year, month } = useMonth();
   const { formatAmount } = useCurrency();
+  const { t } = useLanguage();
+  const getCatLabel = useCategoryLabel();
 
   const monthTx = getTransactionsForMonth(allTransactions, year, month);
   const sorted = [...monthTx].sort(
@@ -94,10 +98,10 @@ export function TransactionsView() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold text-card-foreground">
-              All Transactions
+              {t("transactions.all")}
             </CardTitle>
             <span className="text-xs text-muted-foreground">
-              {sorted.length} entries
+              {sorted.length} {t("transactions.entries")}
             </span>
           </div>
         </CardHeader>
@@ -105,11 +109,16 @@ export function TransactionsView() {
           <ScrollArea className="h-[600px] pr-2">
             <div className="flex flex-col">
               {sorted.map((tx) => (
-                <TransactionRow key={tx.id} tx={tx} formatAmount={formatAmount} />
+                <TransactionRow
+                  key={tx.id}
+                  tx={tx}
+                  formatAmount={formatAmount}
+                  getCatLabel={getCatLabel}
+                />
               ))}
               {sorted.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-16">
-                  No transactions this month
+                  {t("transactions.noData")}
                 </p>
               )}
             </div>

@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import {
   addTransaction,
-  CATEGORY_LABELS,
   EXPENSE_CATEGORIES,
   type Category,
   type TransactionType,
 } from "@/lib/store";
 import { useCurrency } from "@/lib/currency-context";
+import { useLanguage, useCategoryLabel } from "@/lib/i18n";
 import { formatWithComma } from "@/lib/utils";
 import { FormDialog } from "@/components/form-dialog";
 
@@ -30,6 +30,8 @@ export function AddTransaction() {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const { currency } = useCurrency();
+  const { t } = useLanguage();
+  const getCatLabel = useCategoryLabel();
 
   function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
     setAmountDisplay(formatWithComma(e.target.value));
@@ -60,14 +62,14 @@ export function AddTransaction() {
     <FormDialog
       open={open}
       onOpenChange={setOpen}
-      title="New Transaction"
-      description="Enter the details for a new income or expense entry. Amounts are in JPY."
-      triggerLabel="Add Transaction"
+      title={t("addTx.title")}
+      description={t("addTx.dialogDesc")}
+      triggerLabel={t("transactions.add")}
       onSubmit={handleSubmit}
-      submitLabel="Add Entry"
+      submitLabel={t("addTx.addEntry")}
     >
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Type</Label>
+        <Label className="text-card-foreground">{t("addTx.type")}</Label>
         <div className="flex gap-2">
           <Button
             type="button"
@@ -79,7 +81,7 @@ export function AddTransaction() {
             }
             onClick={() => setType("expense")}
           >
-            Expense
+            {t("addTx.expense")}
           </Button>
           <Button
             type="button"
@@ -91,14 +93,14 @@ export function AddTransaction() {
             }
             onClick={() => setType("income")}
           >
-            Income
+            {t("addTx.income")}
           </Button>
         </div>
       </div>
 
       {type === "expense" && (
         <div className="flex flex-col gap-2">
-          <Label className="text-card-foreground">Category</Label>
+          <Label className="text-card-foreground">{t("addTx.category")}</Label>
           <Select
             value={category}
             onValueChange={(v) => setCategory(v as Category)}
@@ -109,7 +111,7 @@ export function AddTransaction() {
             <SelectContent>
               {EXPENSE_CATEGORIES.map((cat) => (
                 <SelectItem key={cat} value={cat}>
-                  {CATEGORY_LABELS[cat]}
+                  {getCatLabel(cat)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -119,7 +121,7 @@ export function AddTransaction() {
 
       <div className="flex flex-col gap-2">
         <Label className="text-card-foreground">
-          Amount ({currency === "JPY" ? "\u00a5 JPY" : "JPY"})
+          {t("addTx.amount")} ({currency === "JPY" ? "\u00a5 JPY" : "JPY"})
         </Label>
         <Input
           type="text"
@@ -133,10 +135,10 @@ export function AddTransaction() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Description</Label>
+        <Label className="text-card-foreground">{t("addTx.description")}</Label>
         <Input
           type="text"
-          placeholder="Grocery shopping"
+          placeholder={t("addTx.placeholder.desc")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
@@ -145,7 +147,7 @@ export function AddTransaction() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label className="text-card-foreground">Date</Label>
+        <Label className="text-card-foreground">{t("addTx.date")}</Label>
         <Input
           type="date"
           value={date}
